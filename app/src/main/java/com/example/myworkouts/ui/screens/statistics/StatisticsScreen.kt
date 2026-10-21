@@ -9,7 +9,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
-import java.util.Locale
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -37,48 +36,25 @@ fun StatisticsScreen(
                 Text("Training Overview", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
                 Spacer(modifier = Modifier.height(8.dp))
 
-                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    Row(
-                        horizontalArrangement = Arrangement.spacedBy(8.dp),
-                        modifier = Modifier.fillMaxWidth()
-                    ) {
-                        StatBox(
-                            title = "Total Workouts",
-                            value = "${overview.totalWorkouts}",
-                            modifier = Modifier.weight(1f)
-                        )
-                        StatBox(
-                            title = "This Week",
-                            value = "${overview.workoutsThisWeek}",
-                            modifier = Modifier.weight(1f)
-                        )
-                        StatBox(
-                            title = "This Month",
-                            value = "${overview.workoutsThisMonth}",
-                            modifier = Modifier.weight(1f)
-                        )
-                    }
-
-                    Row(
-                        horizontalArrangement = Arrangement.spacedBy(8.dp),
-                        modifier = Modifier.fillMaxWidth()
-                    ) {
-                        StatBox(
-                            title = "Total Volume",
-                            value = String.format(Locale.getDefault(), "%.0f kg", overview.totalVolume),
-                            modifier = Modifier.weight(1f)
-                        )
-                        StatBox(
-                            title = "Total Sets",
-                            value = "${overview.totalSets}",
-                            modifier = Modifier.weight(1f)
-                        )
-                        StatBox(
-                            title = "Streak",
-                            value = "${overview.workoutStreakWeeks} wks",
-                            modifier = Modifier.weight(1f)
-                        )
-                    }
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    StatBox(
+                        title = "Total Workouts",
+                        value = "${overview.totalWorkouts}",
+                        modifier = Modifier.weight(1f)
+                    )
+                    StatBox(
+                        title = "This Week",
+                        value = "${overview.workoutsThisWeek}",
+                        modifier = Modifier.weight(1f)
+                    )
+                    StatBox(
+                        title = "This Month",
+                        value = "${overview.workoutsThisMonth}",
+                        modifier = Modifier.weight(1f)
+                    )
                 }
             }
 
@@ -112,8 +88,10 @@ fun StatisticsScreen(
                                 Text(pr.category, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.primary)
                             }
                             Column {
-                                Text("Max: ${pr.heaviestWeight} kg", style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.SemiBold)
-                                Text("1RM: ${String.format(Locale.getDefault(), "%.1f kg", pr.best1RM)}", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                Text(pr.primaryMetric, style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.SemiBold)
+                                pr.secondaryMetric?.let { secondary ->
+                                    Text(secondary, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                }
                             }
                         }
                     }

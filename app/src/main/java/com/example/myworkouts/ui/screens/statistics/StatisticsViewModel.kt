@@ -6,7 +6,7 @@ import androidx.lifecycle.viewModelScope
 import com.example.myworkouts.data.AppDatabase
 import com.example.myworkouts.data.entity.WorkoutEntity
 import com.example.myworkouts.data.repository.WorkoutRepositoryImpl
-import com.example.myworkouts.domain.usecase.CalculateOneRepMaxUseCase
+import com.example.myworkouts.domain.model.ExerciseType
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.*
 import java.util.Calendar
@@ -14,18 +14,14 @@ import java.util.Calendar
 data class PersonalRecordItem(
     val exerciseName: String,
     val category: String,
-    val heaviestWeight: Double,
-    val maxReps: Int,
-    val best1RM: Double
+    val primaryMetric: String,
+    val secondaryMetric: String? = null
 )
 
 data class StatisticsOverview(
     val totalWorkouts: Int = 0,
     val workoutsThisWeek: Int = 0,
-    val workoutsThisMonth: Int = 0,
-    val totalSets: Int = 0,
-    val totalVolume: Double = 0.0,
-    val workoutStreakWeeks: Int = 0
+    val workoutsThisMonth: Int = 0
 )
 
 @OptIn(ExperimentalCoroutinesApi::class)
@@ -37,7 +33,6 @@ class StatisticsViewModel(application: Application) : AndroidViewModel(applicati
         database.setDao(),
         database.exerciseDao()
     )
-    private val calculate1RM = CalculateOneRepMaxUseCase()
 
     val completedWorkouts: StateFlow<List<WorkoutEntity>> = workoutRepository.completedWorkouts
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
@@ -60,28 +55,10 @@ class StatisticsViewModel(application: Application) : AndroidViewModel(applicati
         val thisWeek = workouts.count { it.date >= startOfWeek.timeInMillis }
         val thisMonth = workouts.count { it.date >= startOfMonth.timeInMillis }
 
-        // Calculate total sets and volume from setDao
-        var totalVolume = 0.0
-        var totalSets = 0
-
-        workouts.forEach { w ->
-            val weList = database.workoutExerciseDao().getExercisesForWorkoutSync(w.id)
-            val weIds = weList.map { it.id }
-            if (weIds.isNotEmpty()) {
-                val sets = database.setDao().getSetsForWorkoutExercisesSync(weIds)
-                val completedSets = sets.filter { it.completed }
-                totalSets += completedSets.size
-                totalVolume += completedSets.sumOf { (it.weight ?: 0.0) * (it.reps ?: 0) }
-            }
-        }
-
         StatisticsOverview(
             totalWorkouts = workouts.size,
             workoutsThisWeek = thisWeek,
-            workoutsThisMonth = thisMonth,
-            totalSets = totalSets,
-            totalVolume = totalVolume,
-            workoutStreakWeeks = calculateStreak(workouts)
+            workoutsThisMonth = thisMonth
         )
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), StatisticsOverview())
 
@@ -92,47 +69,58 @@ class StatisticsViewModel(application: Application) : AndroidViewModel(applicati
                 val sets = database.setDao().getPreviousSetsForExerciseSync(exercise.id, System.currentTimeMillis())
                 if (sets.isNotEmpty()) {
                     val maxW = sets.maxOfOrNull { it.weight ?: 0.0 } ?: 0.0
-                    val maxR = sets.maxOfOrNull { it.reps ?: 0 } ?: 0
-                    val max1RM = sets.maxOfOrNull { calculate1RM(it.weight ?: 0.0, it.reps ?: 0) } ?: 0.0
+                    val maxDist = sets.maxOfOrNull { it.distance ?: 0.0 } ?: 0.0
+                    val maxDur = sets.maxOfOrNull { it.duration ?: 0L } ?: 0L
 
-                    if (maxW > 0 || maxR > 0) {
-                        prList.add(
-                            PersonalRecordItem(
-                                exerciseName = exercise.name,
-                                category = exercise.category,
-                                heaviestWeight = maxW,
-                                maxReps = maxR,
-                                best1RM = max1RM
+                    val type = ExerciseType.fromString(exercise.exerciseType)
+                    when (type) {
+                        ExerciseType.DISTANCE_DURATION -> {
+                            if (maxDur > 0 || maxDist > 0) {
+                                prList.add(
+                                    PersonalRecordItem(
+                                        exerciseName = exercise.name,
+                                        category = exercise.category,
+                                        primaryMetric = "Max Time: ${maxDur}m",
+                                        secondaryMetric = if (maxDist > 0) "Max Distance: $maxDist km" else null
+                                    )
+                                )
+                            }
+                        }
+                        ExerciseType.DURATION -> {
+                            if (maxDur > 0) {
+                                prList.add(
+                                    PersonalRecordItem(
+                                        exerciseName = exercise.name,
+                                        category = exercise.category,
+                                        primaryMetric = "Max Time: ${maxDur}m"
+                                    )
+                                )
+                            }
+                        }
+                        ExerciseType.REPS_ONLY -> {
+                            prList.add(
+                                PersonalRecordItem(
+                                    exerciseName = exercise.name,
+                                    category = exercise.category,
+                                    primaryMetric = "Total Sets: ${sets.size}"
+                                )
                             )
-                        )
+                        }
+                        else -> {
+                            if (maxW > 0) {
+                                prList.add(
+                                    PersonalRecordItem(
+                                        exerciseName = exercise.name,
+                                        category = exercise.category,
+                                        primaryMetric = "Max Weight: $maxW kg"
+                                    )
+                                )
+                            }
+                        }
                     }
                 }
             }
-            prList.sortedByDescending { it.heaviestWeight }
+            prList.sortedBy { it.exerciseName }
         }
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
-
-    private fun calculateStreak(workouts: List<WorkoutEntity>): Int {
-        if (workouts.isEmpty()) return 0
-        var streak = 0
-        val cal = Calendar.getInstance()
-        while (true) {
-            val startOfWeek = cal.clone() as Calendar
-            startOfWeek.set(Calendar.DAY_OF_WEEK, startOfWeek.firstDayOfWeek)
-            startOfWeek.set(Calendar.HOUR_OF_DAY, 0)
-
-            val endOfWeek = cal.clone() as Calendar
-            endOfWeek.set(Calendar.DAY_OF_WEEK, startOfWeek.firstDayOfWeek + 6)
-            endOfWeek.set(Calendar.HOUR_OF_DAY, 23)
-
-            val hasWorkoutThisWeek = workouts.any { it.date in startOfWeek.timeInMillis..endOfWeek.timeInMillis }
-            if (hasWorkoutThisWeek) {
-                streak++
-                cal.add(Calendar.WEEK_OF_YEAR, -1)
-            } else {
-                break
-            }
-        }
-        return streak
-    }
 }

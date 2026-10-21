@@ -43,7 +43,8 @@ fun ExerciseDetailsScreen(
             )
         }
     ) { padding ->
-        if (exercise == null) {
+        val currentExercise = exercise
+        if (currentExercise == null) {
             Box(modifier = Modifier.fillMaxSize().padding(padding), contentAlignment = Alignment.Center) {
                 CircularProgressIndicator()
             }
@@ -61,17 +62,17 @@ fun ExerciseDetailsScreen(
                     Card(modifier = Modifier.fillMaxWidth()) {
                         Column(modifier = Modifier.padding(16.dp)) {
                             Text(
-                                exercise!!.name,
+                                currentExercise.name,
                                 style = MaterialTheme.typography.headlineSmall,
                                 fontWeight = FontWeight.Bold
                             )
                             Spacer(modifier = Modifier.height(4.dp))
                             Text(
-                                "Category: ${exercise!!.category}",
+                                "Category: ${currentExercise.category}",
                                 style = MaterialTheme.typography.bodyMedium,
                                 color = MaterialTheme.colorScheme.primary
                             )
-                            exercise!!.description?.let { desc ->
+                            currentExercise.description?.let { desc ->
                                 Spacer(modifier = Modifier.height(8.dp))
                                 Text(desc, style = MaterialTheme.typography.bodySmall)
                             }
@@ -90,13 +91,13 @@ fun ExerciseDetailsScreen(
                             modifier = Modifier.fillMaxWidth()
                         ) {
                             StatCard(
-                                title = "Best Weight",
-                                value = "${stats.maxWeight} kg",
+                                title = stats.statLabel1,
+                                value = stats.statValue1,
                                 modifier = Modifier.weight(1f)
                             )
                             StatCard(
-                                title = "Best Reps",
-                                value = "${stats.maxReps}",
+                                title = stats.statLabel2,
+                                value = stats.statValue2,
                                 modifier = Modifier.weight(1f)
                             )
                         }
@@ -105,13 +106,13 @@ fun ExerciseDetailsScreen(
                             modifier = Modifier.fillMaxWidth()
                         ) {
                             StatCard(
-                                title = "Est. 1RM",
-                                value = String.format(Locale.getDefault(), "%.1f kg", stats.maxEstimated1RM),
+                                title = "Total Sets",
+                                value = "${stats.totalSets}",
                                 modifier = Modifier.weight(1f)
                             )
                             StatCard(
-                                title = "Total Volume",
-                                value = String.format(Locale.getDefault(), "%.0f kg", stats.totalVolume),
+                                title = "Times Performed",
+                                value = "${stats.timesPerformed}",
                                 modifier = Modifier.weight(1f)
                             )
                         }
@@ -140,7 +141,6 @@ fun ExerciseDetailsScreen(
                         ) {
                             Column(modifier = Modifier.padding(16.dp)) {
                                 Text(dateStr, style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold)
-                                Text(session.workoutName, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.primary)
                                 Spacer(modifier = Modifier.height(8.dp))
 
                                 session.sets.forEach { set ->
@@ -152,6 +152,7 @@ fun ExerciseDetailsScreen(
                                     val lineText = when {
                                         w > 0 && r > 0 -> "Set ${set.setNumber}: $w kg × $r reps"
                                         r > 0 -> "Set ${set.setNumber}: $r reps"
+                                        dist != null && dur != null -> "Set ${set.setNumber}: $dist km in ${dur}m"
                                         dur != null -> "Set ${set.setNumber}: ${dur}m"
                                         dist != null -> "Set ${set.setNumber}: $dist km"
                                         else -> "Set ${set.setNumber}: Completed"

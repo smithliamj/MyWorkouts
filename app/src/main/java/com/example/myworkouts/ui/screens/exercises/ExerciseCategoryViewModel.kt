@@ -48,4 +48,16 @@ class ExerciseCategoryViewModel(application: Application) : AndroidViewModel(app
             exerciseRepository.insertExercise(custom)
         }
     }
+
+    fun updateExercise(exercise: ExerciseEntity) {
+        viewModelScope.launch {
+            exerciseRepository.insertExercise(exercise)
+        }
+    }
+
+    fun deleteExercise(exerciseId: Long) {
+        viewModelScope.launch {
+            exerciseRepository.deleteExercise(exerciseId)
+        }
+    }
 }

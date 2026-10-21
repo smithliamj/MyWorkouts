@@ -8,7 +8,7 @@ import com.example.myworkouts.data.entity.ExerciseEntity
 import com.example.myworkouts.data.entity.SetEntity
 import com.example.myworkouts.data.repository.ExerciseRepositoryImpl
 import com.example.myworkouts.data.repository.WorkoutRepositoryImpl
-import com.example.myworkouts.domain.usecase.CalculateOneRepMaxUseCase
+import com.example.myworkouts.domain.model.ExerciseType
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.*
 
@@ -19,10 +19,10 @@ data class ExerciseHistorySession(
 )
 
 data class ExerciseStats(
-    val maxWeight: Double = 0.0,
-    val maxReps: Int = 0,
-    val maxEstimated1RM: Double = 0.0,
-    val totalVolume: Double = 0.0,
+    val statLabel1: String = "Best Metric",
+    val statValue1: String = "—",
+    val statLabel2: String = "Total Sets",
+    val statValue2: String = "0",
     val totalSets: Int = 0,
     val timesPerformed: Int = 0
 )
@@ -37,7 +37,6 @@ class ExerciseDetailsViewModel(application: Application) : AndroidViewModel(appl
         database.setDao(),
         database.exerciseDao()
     )
-    private val calculate1RM = CalculateOneRepMaxUseCase()
 
     private val _exerciseId = MutableStateFlow<Long?>(null)
 
@@ -68,37 +67,60 @@ class ExerciseDetailsViewModel(application: Application) : AndroidViewModel(appl
         }
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
-    val stats: StateFlow<ExerciseStats> = historySessions.map { sessions ->
+    val stats: StateFlow<ExerciseStats> = combine(exercise, historySessions) { currentExercise, sessions ->
         var maxWeight = 0.0
-        var maxReps = 0
-        var max1RM = 0.0
-        var totalVolume = 0.0
+        var maxDistance = 0.0
+        var maxTime = 0L
         var totalSets = 0
 
         sessions.forEach { session ->
-            val sessionVolume = session.sets.sumOf { (it.weight ?: 0.0) * (it.reps ?: 0) }
-            totalVolume += sessionVolume
             totalSets += session.sets.size
-
             session.sets.forEach { set ->
                 val w = set.weight ?: 0.0
-                val r = set.reps ?: 0
-                if (w > maxWeight) maxWeight = w
-                if (r > maxReps) maxReps = r
+                val dist = set.distance ?: 0.0
+                val dur = set.duration ?: 0L
 
-                val e1rm = calculate1RM(w, r)
-                if (e1rm > max1RM) max1RM = e1rm
+                if (w > maxWeight) maxWeight = w
+                if (dist > maxDistance) maxDistance = dist
+                if (dur > maxTime) maxTime = dur
             }
         }
 
-        ExerciseStats(
-            maxWeight = maxWeight,
-            maxReps = maxReps,
-            maxEstimated1RM = max1RM,
-            totalVolume = totalVolume,
-            totalSets = totalSets,
-            timesPerformed = sessions.size
-        )
+        val type = ExerciseType.fromString(currentExercise?.exerciseType)
+        when (type) {
+            ExerciseType.DISTANCE_DURATION -> ExerciseStats(
+                statLabel1 = "Best Distance",
+                statValue1 = "$maxDistance km",
+                statLabel2 = "Best Time",
+                statValue2 = "${maxTime}m",
+                totalSets = totalSets,
+                timesPerformed = sessions.size
+            )
+            ExerciseType.DURATION -> ExerciseStats(
+                statLabel1 = "Best Time",
+                statValue1 = "${maxTime}m",
+                statLabel2 = "Total Sets",
+                statValue2 = "$totalSets",
+                totalSets = totalSets,
+                timesPerformed = sessions.size
+            )
+            ExerciseType.REPS_ONLY -> ExerciseStats(
+                statLabel1 = "Total Sets",
+                statValue1 = "$totalSets",
+                statLabel2 = "Times Performed",
+                statValue2 = "${sessions.size}",
+                totalSets = totalSets,
+                timesPerformed = sessions.size
+            )
+            else -> ExerciseStats(
+                statLabel1 = "Best Weight",
+                statValue1 = "$maxWeight kg",
+                statLabel2 = "Total Sets",
+                statValue2 = "$totalSets",
+                totalSets = totalSets,
+                timesPerformed = sessions.size
+            )
+        }
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), ExerciseStats())
 
     fun loadExercise(id: Long) {

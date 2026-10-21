@@ -10,14 +10,18 @@ import com.example.myworkouts.domain.model.ExerciseType
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun CustomExerciseDialog(
+    title: String = "Add Custom Exercise",
+    initialName: String = "",
     initialCategory: String = "Chest",
+    initialType: ExerciseType = ExerciseType.WEIGHT_REPS,
+    initialDescription: String = "",
     onConfirm: (name: String, category: String, type: String, desc: String?) -> Unit,
     onDismiss: () -> Unit
 ) {
-    var name by remember { mutableStateOf("") }
+    var name by remember { mutableStateOf(initialName) }
     var category by remember { mutableStateOf(initialCategory) }
-    var selectedType by remember { mutableStateOf(ExerciseType.WEIGHT_REPS) }
-    var description by remember { mutableStateOf("") }
+    var selectedType by remember { mutableStateOf(initialType) }
+    var description by remember { mutableStateOf(initialDescription) }
 
     val categories = listOf("Abs", "Back", "Biceps", "Cardio", "Chest", "Legs", "Shoulders", "Triceps")
 
@@ -26,7 +30,7 @@ fun CustomExerciseDialog(
 
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text("Add Custom Exercise") },
+        title = { Text(title) },
         text = {
             Column(
                 modifier = Modifier.fillMaxWidth(),

@@ -219,7 +219,7 @@ fun ExerciseCard(
                 } else if (item.exerciseType == ExerciseType.DURATION) {
                     Text("Duration (m)", style = MaterialTheme.typography.labelSmall, textAlign = TextAlign.Center, modifier = Modifier.weight(5f))
                 } else if (item.exerciseType == ExerciseType.DISTANCE_DURATION) {
-                    Text("Dist", style = MaterialTheme.typography.labelSmall, textAlign = TextAlign.Center, modifier = Modifier.weight(2.5f))
+                    Text("Dist (km)", style = MaterialTheme.typography.labelSmall, textAlign = TextAlign.Center, modifier = Modifier.weight(2.5f))
                     Text("Time (m)", style = MaterialTheme.typography.labelSmall, textAlign = TextAlign.Center, modifier = Modifier.weight(2.5f))
                 } else {
                     Text("Reps", style = MaterialTheme.typography.labelSmall, textAlign = TextAlign.Center, modifier = Modifier.weight(5f))
@@ -322,7 +322,7 @@ fun ExerciseCard(
                         Box(modifier = Modifier.weight(2.5f), contentAlignment = Alignment.Center) {
                             NumberStepper(
                                 label = "",
-                                value = "$currentDist",
+                                value = "${currentDist} km",
                                 onDecrement = {
                                     val next = (currentDist - 0.5).coerceAtLeast(0.0)
                                     onUpdateSetValues(set, set.weight, set.reps, set.duration, next)
@@ -332,7 +332,7 @@ fun ExerciseCard(
                                     onUpdateSetValues(set, set.weight, set.reps, set.duration, next)
                                 },
                                 onValueClick = {
-                                    onOpenValueEdit(set, "Distance") { input ->
+                                    onOpenValueEdit(set, "Distance (km)") { input ->
                                         input.toDoubleOrNull()?.let { dist ->
                                             onUpdateSetValues(set, set.weight, set.reps, set.duration, dist)
                                         }
