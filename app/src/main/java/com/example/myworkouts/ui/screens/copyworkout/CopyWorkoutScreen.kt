@@ -45,7 +45,7 @@ fun CopyWorkoutScreen(
                 .padding(16.dp)
         ) {
             Text(
-                "Select a workout to copy its structure into a new workout for today:",
+                "Copy a previous workout for today:",
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
