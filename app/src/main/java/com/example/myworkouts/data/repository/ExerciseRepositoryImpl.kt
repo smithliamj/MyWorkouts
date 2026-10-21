@@ -23,6 +23,10 @@ class ExerciseRepositoryImpl(private val exerciseDao: ExerciseDao) {
         return exerciseDao.insert(exercise)
     }
 
+    suspend fun updateExercise(exercise: ExerciseEntity) {
+        exerciseDao.update(exercise)
+    }
+
     suspend fun deleteExercise(exerciseId: Long) {
         exerciseDao.delete(exerciseId)
     }

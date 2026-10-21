@@ -74,6 +74,18 @@ class ExerciseSelectionViewModel(application: Application) : AndroidViewModel(ap
         }
     }
 
+    fun updateExercise(exercise: ExerciseEntity) {
+        viewModelScope.launch {
+            exerciseRepository.updateExercise(exercise)
+        }
+    }
+
+    fun deleteExercise(exerciseId: Long) {
+        viewModelScope.launch {
+            exerciseRepository.deleteExercise(exerciseId)
+        }
+    }
+
     fun addSelectedToWorkout(workoutId: Long, onAdded: () -> Unit) {
         viewModelScope.launch {
             val selectedIds = _selectedExerciseIds.value

@@ -1,5 +1,7 @@
 package com.example.myworkouts.ui.screens.exercises
 
+import androidx.compose.foundation.ExperimentalFoundationApi
+import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -17,8 +19,10 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
+import com.example.myworkouts.data.entity.ExerciseEntity
+import com.example.myworkouts.domain.model.ExerciseType
 
-@OptIn(ExperimentalMaterial3Api::class)
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalFoundationApi::class)
 @Composable
 fun ExerciseSelectionScreen(
     navController: NavController,
@@ -31,6 +35,9 @@ fun ExerciseSelectionScreen(
     val filteredExercises by viewModel.filteredExercises.collectAsState()
 
     var showCustomDialog by remember { mutableStateOf(false) }
+    var actionTargetExercise by remember { mutableStateOf<ExerciseEntity?>(null) }
+    var editTargetExercise by remember { mutableStateOf<ExerciseEntity?>(null) }
+    var deleteTargetExercise by remember { mutableStateOf<ExerciseEntity?>(null) }
 
     val categories = listOf("All", "Abs", "Back", "Biceps", "Cardio", "Chest", "Legs", "Shoulders", "Triceps")
 
@@ -137,13 +144,19 @@ fun ExerciseSelectionScreen(
                     items(filteredExercises) { exercise ->
                         val isChecked = selectedExerciseIds.contains(exercise.id)
                         Card(
-                            onClick = {
-                                viewModel.toggleExerciseSelection(exercise.id)
-                            },
                             colors = CardDefaults.cardColors(
                                 containerColor = if (isChecked) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.surfaceVariant
                             ),
-                            modifier = Modifier.fillMaxWidth()
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .combinedClickable(
+                                    onClick = {
+                                        viewModel.toggleExerciseSelection(exercise.id)
+                                    },
+                                    onLongClick = {
+                                        actionTargetExercise = exercise
+                                    }
+                                )
                         ) {
                             Row(
                                 modifier = Modifier
@@ -184,6 +197,52 @@ fun ExerciseSelectionScreen(
                     viewModel.createCustomExercise(name, cat, type, desc)
                 },
                 onDismiss = { showCustomDialog = false }
+            )
+        }
+
+        actionTargetExercise?.let { exercise ->
+            ExerciseActionDialog(
+                exercise = exercise,
+                onEditSelected = {
+                    editTargetExercise = exercise
+                },
+                onDeleteSelected = {
+                    deleteTargetExercise = exercise
+                },
+                onDismiss = {
+                    actionTargetExercise = null
+                }
+            )
+        }
+
+        editTargetExercise?.let { exercise ->
+            CustomExerciseDialog(
+                title = "Edit Exercise",
+                initialName = exercise.name,
+                initialCategory = exercise.category,
+                initialType = ExerciseType.fromString(exercise.exerciseType),
+                initialDescription = exercise.description ?: "",
+                onConfirm = { name, cat, type, desc ->
+                    viewModel.updateExercise(
+                        exercise.copy(
+                            name = name,
+                            category = cat,
+                            exerciseType = type,
+                            description = desc
+                        )
+                    )
+                },
+                onDismiss = { editTargetExercise = null }
+            )
+        }
+
+        deleteTargetExercise?.let { exercise ->
+            DeleteExercisePrompt(
+                exerciseName = exercise.name,
+                onConfirm = {
+                    viewModel.deleteExercise(exercise.id)
+                },
+                onDismiss = { deleteTargetExercise = null }
             )
         }
     }

@@ -51,7 +51,7 @@ class ExerciseCategoryViewModel(application: Application) : AndroidViewModel(app
 
     fun updateExercise(exercise: ExerciseEntity) {
         viewModelScope.launch {
-            exerciseRepository.insertExercise(exercise)
+            exerciseRepository.updateExercise(exercise)
         }
     }
 
